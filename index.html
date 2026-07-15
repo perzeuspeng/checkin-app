@@ -103,6 +103,7 @@
   .segmented{
     position:relative; display:flex; background:#f0f3f7; border-radius:14px; padding:4px; margin-bottom:18px;
   }
+  #roleSwitchRow{ margin-bottom:14px; }
   .seg{
     position:relative; z-index:1; flex:1; text-align:center; padding:11px 8px; cursor:pointer;
     font-weight:600; font-size:14px; color:var(--text-soft); border-radius:11px; transition:color .2s;
@@ -326,14 +327,19 @@
     </div>
     <div class="header-actions">
       <span class="admin-pill" id="adminPill" style="display:none;">แอดมิน</span>
-      <div class="icon-btn" id="btnAdminMenu" title="เมนูแอดมิน" style="display:none;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-      </div>
       <div class="icon-btn" id="btnSignOut" title="ออกจากระบบ">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
       </div>
     </div>
   </div>
+
+  <div class="segmented" id="roleSwitchRow" style="display:none;">
+    <div class="seg-thumb" id="roleThumb"></div>
+    <div class="seg active" id="roleAdmin" data-role="admin">โหมดแอดมิน</div>
+    <div class="seg" id="roleUser" data-role="user">โหมดพนักงาน</div>
+  </div>
+
+  <div id="checkinSection">
 
   <div class="segmented" id="tabsRow">
     <div class="seg-thumb" id="segThumb"></div>
@@ -423,25 +429,12 @@
     <div id="logContainer"><div class="empty-log">กำลังโหลดข้อมูล...</div></div>
   </div>
 
-  <div class="home-indicator" style="position:static; margin:6px auto 0;"></div>
-</div>
+  </div>
 
-<div class="admin-modal" id="adminModal">
-  <div class="admin-sheet">
-    <div class="admin-sheet-head">
-      <h2>เมนูแอดมิน</h2>
-      <div class="admin-close" id="btnCloseAdmin">✕</div>
-    </div>
-
-    <div class="view-toggle-row">
-      <div>
-        <div class="lbl">มุมมองแอดมิน</div>
-        <div class="sub">ปิดเพื่อดูหน้าจอแบบผู้ใช้ทั่วไป</div>
-      </div>
-      <label class="switch">
-        <input type="checkbox" id="viewToggle" checked>
-        <span class="switch-track"></span>
-      </label>
+  <div class="card" id="adminReportSection" style="display:none;">
+    <div class="card-head">
+      <div class="icon-badge blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg></div>
+      <div class="card-title">รายงานการลงเวลาของสมาชิก</div>
     </div>
 
     <div class="filter-row">
@@ -473,9 +466,16 @@
       <div class="admin-form-msg" id="adminFormMsg"></div>
     </div>
 
+    <div class="card-title" style="margin:18px 0 10px;">สรุปรายวัน (รวมทุกคน)</div>
+    <div id="dailySummary"><div class="admin-empty">เลือกช่วงวันที่แล้วกด "ค้นหารายงาน"</div></div>
+
+    <div class="card-title" style="margin:18px 0 10px;">รายละเอียดทั้งหมด</div>
     <div class="admin-list" id="adminList"><div class="admin-empty">เลือกช่วงวันที่แล้วกด "ค้นหารายงาน"</div></div>
   </div>
+
+  <div class="home-indicator" style="position:static; margin:6px auto 0;"></div>
 </div>
+
 
 <div class="success-modal" id="successModal">
   <div class="success-card">
@@ -504,7 +504,7 @@
 </script>
 <script>
 (function(){
-  const appState = { user:null, isAdmin:false, viewAdmin:true };
+  const appState = { user:null, isAdmin:false, roleMode:'user' };
   let nameInputRef = null;
 
   const authGate = document.getElementById('authGate');
@@ -534,7 +534,13 @@
         appState.isAdmin = adminDoc.exists;
       }catch(e){ appState.isAdmin = false; }
       document.getElementById('adminPill').style.display = appState.isAdmin ? 'inline-block' : 'none';
-      document.getElementById('btnAdminMenu').style.display = appState.isAdmin ? 'flex' : 'none';
+      if(appState.isAdmin){
+        roleSwitchRow.style.display = 'flex';
+        setRoleMode('admin');
+      }else{
+        roleSwitchRow.style.display = 'none';
+        setRoleMode('user');
+      }
       loadLog();
     }else{
       appState.user = null;
@@ -543,12 +549,8 @@
     }
   });
 
-  function isAdminView(){ return appState.isAdmin && appState.viewAdmin; }
+  function isAdminView(){ return appState.isAdmin; }
 
-  const btnAdminMenu = document.getElementById('btnAdminMenu');
-  const adminModal = document.getElementById('adminModal');
-  const btnCloseAdmin = document.getElementById('btnCloseAdmin');
-  const viewToggle = document.getElementById('viewToggle');
   const filterFrom = document.getElementById('filterFrom');
   const filterTo = document.getElementById('filterTo');
   const btnFilterSearch = document.getElementById('btnFilterSearch');
@@ -564,14 +566,37 @@
   const adminFormMsg = document.getElementById('adminFormMsg');
   const adminList = document.getElementById('adminList');
 
-  btnAdminMenu.addEventListener('click', ()=>{ adminModal.classList.add('show'); });
-  btnCloseAdmin.addEventListener('click', ()=>{ adminModal.classList.remove('show'); });
+  const roleSwitchRow = document.getElementById('roleSwitchRow');
+  const roleAdmin = document.getElementById('roleAdmin');
+  const roleUser = document.getElementById('roleUser');
+  const roleThumb = document.getElementById('roleThumb');
+  const checkinSection = document.getElementById('checkinSection');
+  const adminReportSection = document.getElementById('adminReportSection');
+  const dailySummary = document.getElementById('dailySummary');
 
-  viewToggle.addEventListener('change', ()=>{
-    appState.viewAdmin = viewToggle.checked;
-    loadLog();
-    if(adminList.dataset.hasResults === '1'){ btnFilterSearch.click(); }
-  });
+  function setRoleMode(mode){
+    appState.roleMode = mode;
+    roleAdmin.classList.toggle('active', mode==='admin');
+    roleUser.classList.toggle('active', mode==='user');
+    roleThumb.style.left = mode==='admin' ? '4px' : 'calc(50% + 0px)';
+    roleThumb.classList.toggle('out', mode==='user');
+    if(mode==='admin'){
+      checkinSection.style.display = 'none';
+      adminReportSection.style.display = 'block';
+      if(adminList.dataset.hasResults !== '1'){
+        const today = new Date();
+        const todayStr = today.getFullYear()+'-'+pad(today.getMonth()+1)+'-'+pad(today.getDate());
+        filterFrom.value = todayStr;
+        filterTo.value = todayStr;
+        btnFilterSearch.click();
+      }
+    }else{
+      checkinSection.style.display = 'block';
+      adminReportSection.style.display = 'none';
+    }
+  }
+  roleAdmin.addEventListener('click', ()=>setRoleMode('admin'));
+  roleUser.addEventListener('click', ()=>setRoleMode('user'));
 
   function pad(n){ return String(n).padStart(2,'0'); }
   function isoRangeFrom(dateStr){ return dateStr + 'T00:00:00.000'; }
@@ -641,10 +666,20 @@
     let html = '';
     docs.forEach(d=>{
       const r = d.data;
+      const photoHtml = r.photo
+        ? '<img src="'+r.photo+'" style="width:44px;height:56px;object-fit:cover;border-radius:8px;flex-shrink:0;">'
+        : '<div style="width:44px;height:56px;border-radius:8px;background:#f0f3f7;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--text-soft);text-align:center;flex-shrink:0;">ไม่มี<br>ภาพ</div>';
+      const coordsHtml = (r.lat!=null && r.lng!=null)
+        ? r.lat.toFixed(5)+', '+r.lng.toFixed(5)+(r.acc!=null ? ' (±'+Math.round(r.acc)+'ม.)' : '')
+        : 'ไม่มีพิกัด'+(r.addedByAdmin ? ' (เพิ่มโดยแอดมิน)' : '');
       html += '<div class="admin-row" data-id="'+d.id+'">'+
+        '<div style="display:flex; gap:10px;">'+photoHtml+
+        '<div style="flex:1; min-width:0;">'+
         '<div class="admin-row-top"><span class="name">'+escapeHtml(r.name)+'</span><span class="tag '+r.mode+'">'+(r.mode==='in'?'เข้างาน':'ออกงาน')+'</span></div>'+
-        '<div class="admin-row-meta">'+r.timeDisplay+(r.addedByAdmin?' · เพิ่มโดยแอดมิน':'')+'</div>'+
-        (isAdminView() ? '<div class="admin-row-btns"><span class="edit-btn" data-action="edit" data-id="'+d.id+'">แก้ไข</span><span class="del-btn" data-action="del" data-id="'+d.id+'">ลบ</span></div>' : '')+
+        '<div class="admin-row-meta">'+r.timeDisplay+'</div>'+
+        '<div class="admin-row-meta">'+coordsHtml+'</div>'+
+        '<div class="admin-row-btns"><span class="edit-btn" data-action="edit" data-id="'+d.id+'">แก้ไข</span><span class="del-btn" data-action="del" data-id="'+d.id+'">ลบ</span></div>'+
+        '</div></div>'+
       '</div>';
     });
     adminList.innerHTML = html;
@@ -666,6 +701,48 @@
     });
   }
 
+  function renderDailySummary(docs){
+    if(!docs || docs.length===0){
+      dailySummary.innerHTML = '<div class="admin-empty">ไม่พบข้อมูลในช่วงวันที่ที่เลือก</div>';
+      return;
+    }
+    const byDay = {};
+    docs.forEach(d=>{
+      const r = d.data;
+      const dateKey = (r.timeISO || '').slice(0,10);
+      if(!byDay[dateKey]) byDay[dateKey] = {};
+      if(!byDay[dateKey][r.name]) byDay[dateKey][r.name] = { in:null, out:null };
+      const t = new Date(r.timeISO).getTime();
+      if(r.mode==='in'){
+        if(byDay[dateKey][r.name].in===null || t < byDay[dateKey][r.name].in.t){
+          byDay[dateKey][r.name].in = { t, display: r.timeDisplay };
+        }
+      }else{
+        if(byDay[dateKey][r.name].out===null || t > byDay[dateKey][r.name].out.t){
+          byDay[dateKey][r.name].out = { t, display: r.timeDisplay };
+        }
+      }
+    });
+    const dateKeys = Object.keys(byDay).sort().reverse();
+    let html = '<table style="width:100%; border-collapse:collapse; font-size:12.5px;">';
+    dateKeys.forEach(dateKey=>{
+      const d = new Date(dateKey+'T00:00:00');
+      const dateLabel = d.toLocaleDateString('th-TH', {year:'numeric', month:'short', day:'numeric'});
+      html += '<tr><td colspan="3" style="padding:10px 0 4px; font-weight:700; color:var(--text); border-top:1px solid var(--border);">'+dateLabel+'</td></tr>';
+      html += '<tr style="color:var(--text-soft); font-size:11px;"><td style="padding:2px 6px 6px 0;">ชื่อ</td><td style="padding:2px 6px 6px;">เวลาเข้า</td><td style="padding:2px 0 6px 6px;">เวลาออก</td></tr>';
+      Object.keys(byDay[dateKey]).sort().forEach(name=>{
+        const rec = byDay[dateKey][name];
+        const inTime = rec.in ? rec.in.display.split(' ').pop() : '—';
+        const outTime = rec.out ? rec.out.display.split(' ').pop() : '—';
+        html += '<tr><td style="padding:5px 6px 5px 0; color:var(--text); font-weight:600;">'+escapeHtml(name)+'</td>'+
+          '<td style="padding:5px 6px; color:var(--green); font-weight:600;">'+inTime+'</td>'+
+          '<td style="padding:5px 0 5px 6px; color:var(--orange); font-weight:600;">'+outTime+'</td></tr>';
+      });
+    });
+    html += '</table>';
+    dailySummary.innerHTML = html;
+  }
+
   btnFilterSearch.addEventListener('click', async ()=>{
     if(!filterFrom.value || !filterTo.value){
       adminList.innerHTML = '<div class="admin-empty">กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด</div>';
@@ -681,8 +758,10 @@
       const docs = snap.docs.map(doc=>({ id: doc.id, data: doc.data() }));
       adminList.dataset.hasResults = '1';
       renderAdminList(docs);
+      renderDailySummary(docs);
     }catch(e){
       adminList.innerHTML = '<div class="admin-empty">ค้นหาไม่สำเร็จ: '+ (e.message||'') +'</div>';
+      dailySummary.innerHTML = '';
     }
   });
 
@@ -964,17 +1043,9 @@
     docs.forEach((d,i)=>{
       const r = d.data;
       const rowClass = (animateFirst && i===0) ? 'row-new' : '';
-      const delBtn = isAdminView() ? '<span class="log-del" data-id="'+d.id+'">ลบ</span>' : '';
-      html += '<div class="log-row '+rowClass+'"><div class="log-icon '+r.mode+'">'+(r.mode==='in'?iconIn:iconOut)+'</div><div class="log-info"><div class="name">'+escapeHtml(r.name)+'</div><div class="meta">'+r.timeDisplay+'</div></div><div class="log-tag '+r.mode+'">'+(r.mode==='in'?'เข้างาน':'ออกงาน')+'</div>'+delBtn+'</div>';
+      html += '<div class="log-row '+rowClass+'"><div class="log-icon '+r.mode+'">'+(r.mode==='in'?iconIn:iconOut)+'</div><div class="log-info"><div class="name">'+escapeHtml(r.name)+'</div><div class="meta">'+r.timeDisplay+'</div></div><div class="log-tag '+r.mode+'">'+(r.mode==='in'?'เข้างาน':'ออกงาน')+'</div></div>';
     });
     container.innerHTML = html;
-    container.querySelectorAll('.log-del').forEach(btn=>{
-      btn.addEventListener('click', async ()=>{
-        if(!confirm('ยืนยันลบรายการนี้?')) return;
-        try{ await db.collection('checkins').doc(btn.dataset.id).delete(); loadLog(); }
-        catch(e){ alert('ลบไม่สำเร็จ: ' + (e.message || '')); }
-      });
-    });
   }
   function escapeHtml(s){
     return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
