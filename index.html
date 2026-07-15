@@ -723,31 +723,49 @@
       const t = new Date(r.timeISO).getTime();
       if(r.mode==='in'){
         if(byDay[dateKey][r.name].in===null || t < byDay[dateKey][r.name].in.t){
-          byDay[dateKey][r.name].in = { t, display: r.timeDisplay };
+          byDay[dateKey][r.name].in = { t, display: r.timeDisplay, signature: r.signature || null };
         }
       }else{
         if(byDay[dateKey][r.name].out===null || t > byDay[dateKey][r.name].out.t){
-          byDay[dateKey][r.name].out = { t, display: r.timeDisplay };
+          byDay[dateKey][r.name].out = { t, display: r.timeDisplay, signature: r.signature || null };
         }
       }
     });
     const dateKeys = Object.keys(byDay).sort().reverse();
-    let html = '<table style="width:100%; border-collapse:collapse; font-size:12.5px;">';
+    const sigCell = (sig)=> sig
+      ? '<img src="'+sig+'" style="height:26px; max-width:70px; object-fit:contain; background:#fff; border:1px solid var(--border); border-radius:4px;">'
+      : '<span style="color:var(--text-soft);">—</span>';
+    let html = '';
     dateKeys.forEach(dateKey=>{
       const d = new Date(dateKey+'T00:00:00');
       const dateLabel = d.toLocaleDateString('th-TH', {year:'numeric', month:'short', day:'numeric'});
-      html += '<tr><td colspan="3" style="padding:10px 0 4px; font-weight:700; color:var(--text); border-top:1px solid var(--border);">'+dateLabel+'</td></tr>';
-      html += '<tr style="color:var(--text-soft); font-size:11px;"><td style="padding:2px 6px 6px 0;">ชื่อ</td><td style="padding:2px 6px 6px;">เวลาเข้า</td><td style="padding:2px 0 6px 6px;">เวลาออก</td></tr>';
-      Object.keys(byDay[dateKey]).sort().forEach(name=>{
+      const names = Object.keys(byDay[dateKey]).sort((a,b)=>{
+        const ta = byDay[dateKey][a].in ? byDay[dateKey][a].in.t : Infinity;
+        const tb = byDay[dateKey][b].in ? byDay[dateKey][b].in.t : Infinity;
+        return ta - tb;
+      });
+      html += '<div style="font-weight:700; color:var(--text); margin:14px 0 8px; font-size:13.5px;">'+dateLabel+'</div>';
+      html += '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:12px; white-space:nowrap;">';
+      html += '<tr style="color:var(--text-soft); font-size:10.5px; text-align:left;">'+
+        '<td style="padding:4px 8px 6px 0;">ชื่อ-นามสกุล</td>'+
+        '<td style="padding:4px 8px 6px;">เวลาเข้างาน</td>'+
+        '<td style="padding:4px 8px 6px;">ลายเซ็น</td>'+
+        '<td style="padding:4px 8px 6px;">เวลาออกงาน</td>'+
+        '<td style="padding:4px 0 6px 8px;">ลายเซ็น</td></tr>';
+      names.forEach(name=>{
         const rec = byDay[dateKey][name];
         const inTime = rec.in ? rec.in.display.split(' ').pop() : '—';
         const outTime = rec.out ? rec.out.display.split(' ').pop() : '—';
-        html += '<tr><td style="padding:5px 6px 5px 0; color:var(--text); font-weight:600;">'+escapeHtml(name)+'</td>'+
-          '<td style="padding:5px 6px; color:var(--green); font-weight:600;">'+inTime+'</td>'+
-          '<td style="padding:5px 0 5px 6px; color:var(--orange); font-weight:600;">'+outTime+'</td></tr>';
+        html += '<tr style="border-top:1px solid #f0f3f7;">'+
+          '<td style="padding:7px 8px 7px 0; color:var(--text); font-weight:600;">'+escapeHtml(name)+'</td>'+
+          '<td style="padding:7px 8px; color:var(--green); font-weight:600;">'+inTime+'</td>'+
+          '<td style="padding:7px 8px;">'+sigCell(rec.in ? rec.in.signature : null)+'</td>'+
+          '<td style="padding:7px 8px; color:var(--orange); font-weight:600;">'+outTime+'</td>'+
+          '<td style="padding:7px 0 7px 8px;">'+sigCell(rec.out ? rec.out.signature : null)+'</td>'+
+        '</tr>';
       });
+      html += '</table></div>';
     });
-    html += '</table>';
     dailySummary.innerHTML = html;
   }
 
