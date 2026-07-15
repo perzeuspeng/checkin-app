@@ -595,6 +595,7 @@
     }else{
       checkinSection.style.display = 'block';
       adminReportSection.style.display = 'none';
+      setTimeout(resizeSigCanvas, 30);
     }
   }
   roleAdmin.addEventListener('click', ()=>setRoleMode('admin'));
