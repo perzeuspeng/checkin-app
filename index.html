@@ -216,15 +216,6 @@
   .row-new{ animation:rowIn .4s var(--ease); }
   @keyframes rowIn{ from{opacity:0; transform:translateX(-8px);} to{opacity:1; transform:translateX(0);} }
 
-  .bottom-nav{
-    max-width:400px; margin:12px auto 0; background:var(--card); border-radius:22px;
-    display:flex; justify-content:space-around; padding:12px 10px;
-    box-shadow:0 14px 30px -14px rgba(23,27,52,0.3);
-  }
-  .nav-item{ color:var(--text-soft); cursor:pointer; padding:6px 14px; border-radius:12px; transition:all .18s; }
-  .nav-item:hover{ color:var(--blue); background:var(--blue-bg); }
-  .nav-item svg{ width:20px; height:20px; display:block; }
-
   .success-modal{
     position:fixed; inset:0; background:rgba(23,27,52,0.55); backdrop-filter:blur(2px); z-index:1000;
     display:none; align-items:center; justify-content:center; opacity:0; transition:opacity .2s;
@@ -271,6 +262,9 @@
     </div>
     <div class="header-actions">
       <span class="admin-pill" id="adminPill" style="display:none;">แอดมิน</span>
+      <div class="icon-btn" id="btnAdminMenu" title="เมนูแอดมิน" style="display:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </div>
       <div class="icon-btn" id="btnSignOut" title="ออกจากระบบ">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
       </div>
@@ -368,13 +362,6 @@
   <div class="home-indicator" style="position:static; margin:6px auto 0;"></div>
 </div>
 
-<div class="bottom-nav" id="bottomNav">
-  <div class="nav-item" data-target="mainWrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></div>
-  <div class="nav-item" data-target="cardLoc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></div>
-  <div class="nav-item" data-target="cardName"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg></div>
-  <div class="nav-item" data-target="logSection"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></div>
-</div>
-
 <div class="success-modal" id="successModal">
   <div class="success-card">
     <div class="success-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
@@ -388,12 +375,12 @@
 <script>
   // ===== วางค่า config จาก Firebase Console ตรงนี้ =====
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyDiZEhxFUf7jrOzInGE8zkXpUUNg_byDak",
+    authDomain: "checkin-app-4d996.firebaseapp.com",
+    projectId: "checkin-app-4d996",
+    storageBucket: "checkin-app-4d996.firebasestorage.app",
+    messagingSenderId: "561649848307",
+    appId: "1:561649848307:web:5be59164be77ed6bbe0c86"
   };
   firebase.initializeApp(firebaseConfig);
   const fbAuth = firebase.auth();
@@ -432,6 +419,7 @@
         appState.isAdmin = adminDoc.exists;
       }catch(e){ appState.isAdmin = false; }
       document.getElementById('adminPill').style.display = appState.isAdmin ? 'inline-block' : 'none';
+      document.getElementById('btnAdminMenu').style.display = appState.isAdmin ? 'flex' : 'none';
       loadLog();
     }else{
       appState.user = null;
@@ -440,11 +428,10 @@
     }
   });
 
-  document.querySelectorAll('.nav-item').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      const target = document.getElementById(el.dataset.target);
-      if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
-    });
+  const btnAdminMenu = document.getElementById('btnAdminMenu');
+  btnAdminMenu.addEventListener('click', ()=>{
+    const target = document.getElementById('logSection');
+    if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
   });
 
   const state = {
