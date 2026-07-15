@@ -229,6 +229,70 @@
   }
   .success-circle svg{ width:28px; height:28px; }
   .success-title{ font-size:15.5px; font-weight:700; color:var(--text); }
+
+  /* Admin panel */
+  .admin-modal{
+    position:fixed; inset:0; background:rgba(23,27,52,0.55); backdrop-filter:blur(2px); z-index:1500;
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  .admin-modal.show{ display:flex; }
+  .admin-sheet{
+    background:#fff; width:100%; max-width:420px; max-height:88vh; overflow-y:auto;
+    border-radius:24px 24px 0 0; padding:18px 18px 26px; animation:sheetUp .3s var(--ease);
+  }
+  @keyframes sheetUp{ from{ transform:translateY(30px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
+  .admin-sheet-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .admin-sheet-head h2{ font-size:16px; font-weight:700; margin:0; color:var(--text); }
+  .admin-close{ width:30px; height:30px; border-radius:50%; background:#f0f3f7; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text-soft); }
+
+  .view-toggle-row{ display:flex; align-items:center; justify-content:space-between; background:#f7f9fb; border-radius:14px; padding:12px 14px; margin-bottom:16px; }
+  .view-toggle-row .lbl{ font-size:13px; font-weight:600; color:var(--text); }
+  .view-toggle-row .sub{ font-size:11px; color:var(--text-soft); margin-top:1px; }
+  .switch{ position:relative; width:44px; height:26px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch-track{ position:absolute; inset:0; background:#c9cfd8; border-radius:20px; cursor:pointer; transition:background .2s; }
+  .switch-track::before{ content:""; position:absolute; width:20px; height:20px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,0.3); }
+  .switch input:checked + .switch-track{ background:var(--blue); }
+  .switch input:checked + .switch-track::before{ transform:translateX(18px); }
+
+  .filter-row{ display:flex; gap:8px; margin-bottom:10px; }
+  .filter-row input[type="date"]{
+    flex:1; background:#f7f9fb; border:1.5px solid var(--border); border-radius:10px; padding:9px 8px;
+    font-family:'IBM Plex Sans Thai', sans-serif; font-size:12.5px; color:var(--text);
+  }
+  .admin-actions-row{ display:flex; gap:8px; margin-bottom:16px; }
+  .admin-actions-row .pill-btn{ font-size:13px; padding:11px; }
+  .admin-actions-row .pill-btn.ghost{ background:#fff; color:var(--text); border:1.5px solid var(--border); }
+  .admin-actions-row .pill-btn.ghost:hover{ border-color:var(--blue); background:var(--blue-bg); }
+
+  .admin-list{ margin-bottom:6px; }
+  .admin-row{ padding:11px 0; border-bottom:1px solid #f0f3f7; }
+  .admin-row:last-child{ border-bottom:none; }
+  .admin-row-top{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .admin-row-top .name{ font-size:13.5px; font-weight:600; color:var(--text); }
+  .admin-row-top .tag{ font-size:11px; font-weight:700; }
+  .admin-row-top .tag.in{ color:var(--green); }
+  .admin-row-top .tag.out{ color:var(--orange); }
+  .admin-row-meta{ font-size:11px; color:var(--text-soft); margin-top:2px; }
+  .admin-row-btns{ display:flex; gap:8px; margin-top:8px; }
+  .admin-row-btns span{ font-size:11px; font-weight:600; padding:5px 10px; border-radius:8px; cursor:pointer; }
+  .admin-row-btns .edit-btn{ color:var(--blue); background:var(--blue-bg); }
+  .admin-row-btns .del-btn{ color:var(--red); background:var(--red-bg); }
+
+  .admin-form{ background:#f7f9fb; border-radius:14px; padding:14px; margin-bottom:16px; display:none; }
+  .admin-form.show{ display:block; }
+  .admin-form label{ font-size:11.5px; color:var(--text-soft); display:block; margin:8px 0 4px; }
+  .admin-form label:first-child{ margin-top:0; }
+  .admin-form input, .admin-form select{
+    width:100%; background:#fff; border:1.5px solid var(--border); border-radius:9px; padding:9px 10px;
+    font-family:'IBM Plex Sans Thai', sans-serif; font-size:13.5px; color:var(--text);
+  }
+  .admin-form-btns{ display:flex; gap:8px; margin-top:12px; }
+  .admin-form-btns .pill-btn{ padding:10px; font-size:13px; }
+  .admin-form-msg{ font-size:11.5px; margin-top:8px; }
+  .admin-form-msg.err{ color:var(--red); }
+  .admin-form-msg.ok{ color:var(--green); }
+  .admin-empty{ text-align:center; padding:20px; color:var(--text-soft); font-size:12.5px; }
 </style>
 </head>
 <body>
@@ -362,6 +426,57 @@
   <div class="home-indicator" style="position:static; margin:6px auto 0;"></div>
 </div>
 
+<div class="admin-modal" id="adminModal">
+  <div class="admin-sheet">
+    <div class="admin-sheet-head">
+      <h2>เมนูแอดมิน</h2>
+      <div class="admin-close" id="btnCloseAdmin">✕</div>
+    </div>
+
+    <div class="view-toggle-row">
+      <div>
+        <div class="lbl">มุมมองแอดมิน</div>
+        <div class="sub">ปิดเพื่อดูหน้าจอแบบผู้ใช้ทั่วไป</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="viewToggle" checked>
+        <span class="switch-track"></span>
+      </label>
+    </div>
+
+    <div class="filter-row">
+      <input type="date" id="filterFrom">
+      <input type="date" id="filterTo">
+    </div>
+    <div class="admin-actions-row">
+      <button class="pill-btn ghost" id="btnFilterSearch" style="flex:1;">ค้นหารายงาน</button>
+      <button class="pill-btn primary" id="btnOpenAdd" style="flex:1;">+ เพิ่มรายการ</button>
+    </div>
+
+    <div class="admin-form" id="adminForm">
+      <input type="hidden" id="editDocId">
+      <label>ชื่อ-นามสกุล</label>
+      <input type="text" id="formName" placeholder="กรอกชื่อ-นามสกุล">
+      <label>ประเภท</label>
+      <select id="formMode">
+        <option value="in">เข้างาน</option>
+        <option value="out">ออกงาน</option>
+      </select>
+      <label>วันที่</label>
+      <input type="date" id="formDate">
+      <label>เวลา</label>
+      <input type="time" id="formTime" step="1">
+      <div class="admin-form-btns">
+        <button class="pill-btn primary" id="btnFormSave" style="flex:1;">บันทึก</button>
+        <button class="pill-btn ghost" id="btnFormCancel" style="flex:1;">ยกเลิก</button>
+      </div>
+      <div class="admin-form-msg" id="adminFormMsg"></div>
+    </div>
+
+    <div class="admin-list" id="adminList"><div class="admin-empty">เลือกช่วงวันที่แล้วกด "ค้นหารายงาน"</div></div>
+  </div>
+</div>
+
 <div class="success-modal" id="successModal">
   <div class="success-card">
     <div class="success-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
@@ -389,7 +504,7 @@
 </script>
 <script>
 (function(){
-  const appState = { user:null, isAdmin:false };
+  const appState = { user:null, isAdmin:false, viewAdmin:true };
   let nameInputRef = null;
 
   const authGate = document.getElementById('authGate');
@@ -428,10 +543,147 @@
     }
   });
 
+  function isAdminView(){ return appState.isAdmin && appState.viewAdmin; }
+
   const btnAdminMenu = document.getElementById('btnAdminMenu');
-  btnAdminMenu.addEventListener('click', ()=>{
-    const target = document.getElementById('logSection');
-    if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+  const adminModal = document.getElementById('adminModal');
+  const btnCloseAdmin = document.getElementById('btnCloseAdmin');
+  const viewToggle = document.getElementById('viewToggle');
+  const filterFrom = document.getElementById('filterFrom');
+  const filterTo = document.getElementById('filterTo');
+  const btnFilterSearch = document.getElementById('btnFilterSearch');
+  const btnOpenAdd = document.getElementById('btnOpenAdd');
+  const adminForm = document.getElementById('adminForm');
+  const editDocId = document.getElementById('editDocId');
+  const formName = document.getElementById('formName');
+  const formMode = document.getElementById('formMode');
+  const formDate = document.getElementById('formDate');
+  const formTime = document.getElementById('formTime');
+  const btnFormSave = document.getElementById('btnFormSave');
+  const btnFormCancel = document.getElementById('btnFormCancel');
+  const adminFormMsg = document.getElementById('adminFormMsg');
+  const adminList = document.getElementById('adminList');
+
+  btnAdminMenu.addEventListener('click', ()=>{ adminModal.classList.add('show'); });
+  btnCloseAdmin.addEventListener('click', ()=>{ adminModal.classList.remove('show'); });
+
+  viewToggle.addEventListener('change', ()=>{
+    appState.viewAdmin = viewToggle.checked;
+    loadLog();
+    if(adminList.dataset.hasResults === '1'){ btnFilterSearch.click(); }
+  });
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function isoRangeFrom(dateStr){ return dateStr + 'T00:00:00.000'; }
+  function isoRangeTo(dateStr){ return dateStr + 'T23:59:59.999'; }
+
+  function openForm(prefill){
+    adminFormMsg.textContent = ''; adminFormMsg.className = 'admin-form-msg';
+    if(prefill){
+      editDocId.value = prefill.id;
+      formName.value = prefill.name || '';
+      formMode.value = prefill.mode || 'in';
+      const d = new Date(prefill.timeISO || Date.now());
+      formDate.value = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+      formTime.value = pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+    }else{
+      const now = new Date();
+      editDocId.value = '';
+      formName.value = '';
+      formMode.value = 'in';
+      formDate.value = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
+      formTime.value = pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+    }
+    adminForm.classList.add('show');
+  }
+  btnOpenAdd.addEventListener('click', ()=>openForm(null));
+  btnFormCancel.addEventListener('click', ()=>{ adminForm.classList.remove('show'); });
+
+  btnFormSave.addEventListener('click', async ()=>{
+    const name = formName.value.trim();
+    if(!name){ adminFormMsg.textContent = 'กรุณากรอกชื่อ-นามสกุล'; adminFormMsg.className = 'admin-form-msg err'; return; }
+    if(!formDate.value || !formTime.value){ adminFormMsg.textContent = 'กรุณาระบุวันที่และเวลา'; adminFormMsg.className = 'admin-form-msg err'; return; }
+    const timeStr = formTime.value.length===5 ? formTime.value+':00' : formTime.value;
+    const combined = new Date(formDate.value + 'T' + timeStr);
+    const payload = {
+      name: name, mode: formMode.value,
+      timeISO: combined.toISOString(),
+      timeDisplay: combined.toLocaleString('th-TH', {hour12:false})
+    };
+    btnFormSave.disabled = true;
+    adminFormMsg.textContent = 'กำลังบันทึก...'; adminFormMsg.className = 'admin-form-msg ok';
+    try{
+      if(editDocId.value){
+        await db.collection('checkins').doc(editDocId.value).update(payload);
+      }else{
+        payload.lat = null; payload.lng = null; payload.acc = null;
+        payload.photo = null; payload.signature = null;
+        payload.uid = null; payload.email = appState.user ? appState.user.email : null;
+        payload.addedByAdmin = true;
+        payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await db.collection('checkins').add(payload);
+      }
+      adminFormMsg.textContent = 'บันทึกสำเร็จ'; adminFormMsg.className = 'admin-form-msg ok';
+      adminForm.classList.remove('show');
+      loadLog();
+      if(adminList.dataset.hasResults === '1'){ btnFilterSearch.click(); }
+    }catch(err){
+      adminFormMsg.textContent = 'ผิดพลาด: ' + (err.message || ''); adminFormMsg.className = 'admin-form-msg err';
+    }
+    btnFormSave.disabled = false;
+  });
+
+  function renderAdminList(docs){
+    if(!docs || docs.length===0){
+      adminList.innerHTML = '<div class="admin-empty">ไม่พบข้อมูลในช่วงวันที่ที่เลือก</div>';
+      return;
+    }
+    let html = '';
+    docs.forEach(d=>{
+      const r = d.data;
+      html += '<div class="admin-row" data-id="'+d.id+'">'+
+        '<div class="admin-row-top"><span class="name">'+escapeHtml(r.name)+'</span><span class="tag '+r.mode+'">'+(r.mode==='in'?'เข้างาน':'ออกงาน')+'</span></div>'+
+        '<div class="admin-row-meta">'+r.timeDisplay+(r.addedByAdmin?' · เพิ่มโดยแอดมิน':'')+'</div>'+
+        (isAdminView() ? '<div class="admin-row-btns"><span class="edit-btn" data-action="edit" data-id="'+d.id+'">แก้ไข</span><span class="del-btn" data-action="del" data-id="'+d.id+'">ลบ</span></div>' : '')+
+      '</div>';
+    });
+    adminList.innerHTML = html;
+    adminList.querySelectorAll('[data-action="edit"]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const doc = docs.find(d=>d.id===btn.dataset.id);
+        if(doc) openForm({ id: doc.id, name: doc.data.name, mode: doc.data.mode, timeISO: doc.data.timeISO });
+      });
+    });
+    adminList.querySelectorAll('[data-action="del"]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        if(!confirm('ยืนยันลบรายการนี้?')) return;
+        try{
+          await db.collection('checkins').doc(btn.dataset.id).delete();
+          loadLog();
+          btnFilterSearch.click();
+        }catch(e){ alert('ลบไม่สำเร็จ: ' + (e.message || '')); }
+      });
+    });
+  }
+
+  btnFilterSearch.addEventListener('click', async ()=>{
+    if(!filterFrom.value || !filterTo.value){
+      adminList.innerHTML = '<div class="admin-empty">กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด</div>';
+      return;
+    }
+    adminList.innerHTML = '<div class="admin-empty">กำลังค้นหา...</div>';
+    try{
+      const snap = await db.collection('checkins')
+        .where('timeISO', '>=', isoRangeFrom(filterFrom.value))
+        .where('timeISO', '<=', isoRangeTo(filterTo.value))
+        .orderBy('timeISO', 'desc')
+        .get();
+      const docs = snap.docs.map(doc=>({ id: doc.id, data: doc.data() }));
+      adminList.dataset.hasResults = '1';
+      renderAdminList(docs);
+    }catch(e){
+      adminList.innerHTML = '<div class="admin-empty">ค้นหาไม่สำเร็จ: '+ (e.message||'') +'</div>';
+    }
   });
 
   const state = {
@@ -712,7 +964,7 @@
     docs.forEach((d,i)=>{
       const r = d.data;
       const rowClass = (animateFirst && i===0) ? 'row-new' : '';
-      const delBtn = appState.isAdmin ? '<span class="log-del" data-id="'+d.id+'">ลบ</span>' : '';
+      const delBtn = isAdminView() ? '<span class="log-del" data-id="'+d.id+'">ลบ</span>' : '';
       html += '<div class="log-row '+rowClass+'"><div class="log-icon '+r.mode+'">'+(r.mode==='in'?iconIn:iconOut)+'</div><div class="log-info"><div class="name">'+escapeHtml(r.name)+'</div><div class="meta">'+r.timeDisplay+'</div></div><div class="log-tag '+r.mode+'">'+(r.mode==='in'?'เข้างาน':'ออกงาน')+'</div>'+delBtn+'</div>';
     });
     container.innerHTML = html;
