@@ -586,12 +586,9 @@
       adminReportSection.style.display = 'block';
       if(adminList.dataset.hasResults !== '1'){
         const today = new Date();
-        const weekAgo = new Date(today.getTime() - 6*24*60*60*1000);
         const todayStr = today.getFullYear()+'-'+pad(today.getMonth()+1)+'-'+pad(today.getDate());
-        const weekAgoStr = weekAgo.getFullYear()+'-'+pad(weekAgo.getMonth()+1)+'-'+pad(weekAgo.getDate());
-        filterFrom.value = weekAgoStr;
+        filterFrom.value = todayStr;
         filterTo.value = todayStr;
-        btnFilterSearch.click();
       }
     }else{
       checkinSection.style.display = 'block';
