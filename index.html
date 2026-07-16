@@ -718,7 +718,8 @@
     const byDay = {};
     docs.forEach(d=>{
       const r = d.data;
-      const dateKey = (r.timeISO || '').slice(0,10);
+      const rDate = new Date(r.timeISO);
+      const dateKey = rDate.getFullYear()+'-'+pad(rDate.getMonth()+1)+'-'+pad(rDate.getDate());
       if(!byDay[dateKey]) byDay[dateKey] = {};
       if(!byDay[dateKey][r.name]) byDay[dateKey][r.name] = { in:null, out:null };
       const t = new Date(r.timeISO).getTime();
@@ -738,7 +739,8 @@
       : '<span style="color:var(--text-soft);">—</span>';
     let html = '';
     dateKeys.forEach(dateKey=>{
-      const d = new Date(dateKey+'T00:00:00');
+      const dp = dateKey.split('-').map(Number);
+      const d = new Date(dp[0], dp[1]-1, dp[2]);
       const dateLabel = d.toLocaleDateString('th-TH', {year:'numeric', month:'short', day:'numeric'});
       const names = Object.keys(byDay[dateKey]).sort((a,b)=>{
         const ta = byDay[dateKey][a].in ? byDay[dateKey][a].in.t : Infinity;
