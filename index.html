@@ -294,6 +294,24 @@
   .admin-form-msg.err{ color:var(--red); }
   .admin-form-msg.ok{ color:var(--green); }
   .admin-empty{ text-align:center; padding:20px; color:var(--text-soft); font-size:12.5px; }
+
+  /* PDF export (print) styles */
+  .print-only{ display:none; }
+  @media print{
+    body > *:not(.print-only){ display:none !important; }
+    .print-only{ display:block !important; }
+    body{ background:#fff; padding:0; }
+    .print-page{ padding:24px; page-break-after:always; }
+    .print-page:last-child{ page-break-after:auto; }
+    .print-header{ text-align:center; border-bottom:2px solid #1c2233; padding-bottom:10px; margin-bottom:18px; }
+    .print-header h1{ font-size:19px; margin:0; color:#1c2233; }
+    .print-header .co{ font-size:12.5px; color:#555; margin-top:3px; }
+    .print-header .sub{ font-size:12px; color:#555; margin-top:6px; }
+    .print-table{ width:100%; border-collapse:collapse; font-size:12px; }
+    .print-table th, .print-table td{ border:1px solid #999; padding:7px 9px; text-align:left; color:#1c2233; }
+    .print-table th{ background:#f0f3f7; }
+    .print-table img{ height:32px; }
+  }
 </style>
 </head>
 <body>
@@ -446,6 +464,7 @@
       <button class="pill-btn ghost" id="btnFilterSearch" style="flex:1;">ค้นหารายงาน</button>
       <button class="pill-btn primary" id="btnOpenAdd" style="flex:1;">+ เพิ่มรายการ</button>
     </div>
+    <button class="pill-btn ghost full" id="btnExportPdf" style="margin-bottom:16px;">🖨️ ส่งออก PDF</button>
 
     <div class="admin-form" id="adminForm">
       <input type="hidden" id="editDocId">
@@ -484,6 +503,8 @@
     <div class="success-title" id="successTitle">บันทึกเวลาสำเร็จ</div>
   </div>
 </div>
+
+<div class="print-only" id="printArea"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -770,7 +791,97 @@
     dailySummary.innerHTML = html;
   }
 
+  // ===== PDF export (via browser print) =====
+  function computeInOutByDay(docs){
+    const byDay = {};
+    docs.forEach(d=>{
+      const r = d.data;
+      const rDate = new Date(r.timeISO);
+      const dateKey = rDate.getFullYear()+'-'+pad(rDate.getMonth()+1)+'-'+pad(rDate.getDate());
+      if(!byDay[dateKey]) byDay[dateKey] = {};
+      if(!byDay[dateKey][r.name]) byDay[dateKey][r.name] = { in:null, out:null };
+      const t = rDate.getTime();
+      if(r.mode==='in'){
+        if(byDay[dateKey][r.name].in===null || t < byDay[dateKey][r.name].in.t){
+          byDay[dateKey][r.name].in = { t, display:r.timeDisplay, signature:r.signature||null };
+        }
+      }else{
+        if(byDay[dateKey][r.name].out===null || t > byDay[dateKey][r.name].out.t){
+          byDay[dateKey][r.name].out = { t, display:r.timeDisplay, signature:r.signature||null };
+        }
+      }
+    });
+    return byDay;
+  }
+  function printTimeOnly(display){ return display ? display.split(' ').pop() : '—'; }
+  function printSig(sig){ return sig ? '<img src="'+sig+'">' : '—'; }
+  function printHeader(subtitle){
+    const now = new Date();
+    return '<div class="print-header"><h1>บันทึกการลงเวลา</h1>'+
+      '<div class="co">ระบบลงเวลาเข้า-ออกงาน</div>'+
+      '<div class="sub">'+subtitle+'</div>'+
+      '<div class="sub">พิมพ์เมื่อ '+now.toLocaleString('th-TH',{hour12:false})+'</div></div>';
+  }
+  function buildDatePages(docs){
+    const byDay = computeInOutByDay(docs);
+    const dateKeys = Object.keys(byDay).sort();
+    let html = '';
+    dateKeys.forEach(dateKey=>{
+      const dp = dateKey.split('-').map(Number);
+      const d = new Date(dp[0], dp[1]-1, dp[2]);
+      const dateLabel = d.toLocaleDateString('th-TH', {year:'numeric', month:'long', day:'numeric', weekday:'long'});
+      const names = Object.keys(byDay[dateKey]).sort((a,b)=>{
+        const ta = byDay[dateKey][a].in ? byDay[dateKey][a].in.t : Infinity;
+        const tb = byDay[dateKey][b].in ? byDay[dateKey][b].in.t : Infinity;
+        return ta - tb;
+      });
+      html += '<div class="print-page">'+printHeader('วันที่ '+dateLabel);
+      html += '<table class="print-table"><thead><tr><th>ชื่อ-นามสกุล</th><th>เวลาเข้างาน</th><th>ลายเซ็น</th><th>เวลาออกงาน</th><th>ลายเซ็น</th></tr></thead><tbody>';
+      names.forEach(name=>{
+        const rec = byDay[dateKey][name];
+        html += '<tr><td>'+escapeHtml(name)+'</td><td>'+printTimeOnly(rec.in?rec.in.display:null)+'</td><td>'+printSig(rec.in?rec.in.signature:null)+'</td><td>'+printTimeOnly(rec.out?rec.out.display:null)+'</td><td>'+printSig(rec.out?rec.out.signature:null)+'</td></tr>';
+      });
+      html += '</tbody></table></div>';
+    });
+    return html;
+  }
+  function buildPersonPages(docs){
+    const byName = {};
+    docs.forEach(d=>{
+      if(!byName[d.data.name]) byName[d.data.name] = [];
+      byName[d.data.name].push(d);
+    });
+    let html = '';
+    Object.keys(byName).sort().forEach(name=>{
+      const byDay = computeInOutByDay(byName[name]);
+      const dateKeys = Object.keys(byDay).sort();
+      html += '<div class="print-page">'+printHeader('ชื่อ-นามสกุล: '+escapeHtml(name));
+      html += '<table class="print-table"><thead><tr><th>วันที่</th><th>เวลาเข้างาน</th><th>ลายเซ็น</th><th>เวลาออกงาน</th><th>ลายเซ็น</th></tr></thead><tbody>';
+      dateKeys.forEach(dateKey=>{
+        const dp = dateKey.split('-').map(Number);
+        const d = new Date(dp[0], dp[1]-1, dp[2]);
+        const dateLabel = d.toLocaleDateString('th-TH', {year:'numeric', month:'short', day:'numeric'});
+        const rec = byDay[dateKey][name];
+        html += '<tr><td>'+dateLabel+'</td><td>'+printTimeOnly(rec.in?rec.in.display:null)+'</td><td>'+printSig(rec.in?rec.in.signature:null)+'</td><td>'+printTimeOnly(rec.out?rec.out.display:null)+'</td><td>'+printSig(rec.out?rec.out.signature:null)+'</td></tr>';
+      });
+      html += '</tbody></table></div>';
+    });
+    return html;
+  }
+  const btnExportPdf = document.getElementById('btnExportPdf');
+  btnExportPdf.addEventListener('click', ()=>{
+    if(!lastReportDocs || lastReportDocs.length===0){
+      alert('กรุณากด "ค้นหารายงาน" ก่อน เพื่อดึงข้อมูลที่จะส่งออก');
+      return;
+    }
+    const nameQuery = filterName.value.trim();
+    const printArea = document.getElementById('printArea');
+    printArea.innerHTML = nameQuery ? buildPersonPages(lastReportDocs) : buildDatePages(lastReportDocs);
+    setTimeout(()=>window.print(), 80);
+  });
+
   const filterName = document.getElementById('filterName');
+  let lastReportDocs = [];
 
   btnFilterSearch.addEventListener('click', async ()=>{
     if(!filterFrom.value || !filterTo.value){
@@ -790,6 +901,7 @@
         docs = docs.filter(d => (d.data.name || '').toLowerCase().includes(nameQuery));
       }
       adminList.dataset.hasResults = '1';
+      lastReportDocs = docs;
       renderAdminList(docs);
       renderDailySummary(docs);
     }catch(e){
