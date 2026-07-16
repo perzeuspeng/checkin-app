@@ -424,7 +424,7 @@
   <div class="card" id="logSection">
     <div class="card-head">
       <div class="icon-badge blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg></div>
-      <div class="card-title">รายการล่าสุด</div>
+      <div class="card-title">รายการของฉันวันนี้</div>
     </div>
     <div id="logContainer"><div class="empty-log">กำลังโหลดข้อมูล...</div></div>
   </div>
@@ -437,6 +437,7 @@
       <div class="card-title">รายงานการลงเวลาของสมาชิก</div>
     </div>
 
+    <input type="text" id="filterName" class="input-field" placeholder="ค้นหาตามชื่อ-นามสกุล (ไม่บังคับ)" style="margin-bottom:10px;">
     <div class="filter-row">
       <input type="date" id="filterFrom">
       <input type="date" id="filterTo">
@@ -772,6 +773,8 @@
     dailySummary.innerHTML = html;
   }
 
+  const filterName = document.getElementById('filterName');
+
   btnFilterSearch.addEventListener('click', async ()=>{
     if(!filterFrom.value || !filterTo.value){
       adminList.innerHTML = '<div class="admin-empty">กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด</div>';
@@ -784,7 +787,11 @@
         .where('timeISO', '<=', isoRangeTo(filterTo.value))
         .orderBy('timeISO', 'desc')
         .get();
-      const docs = snap.docs.map(doc=>({ id: doc.id, data: doc.data() }));
+      let docs = snap.docs.map(doc=>({ id: doc.id, data: doc.data() }));
+      const nameQuery = filterName.value.trim().toLowerCase();
+      if(nameQuery){
+        docs = docs.filter(d => (d.data.name || '').toLowerCase().includes(nameQuery));
+      }
       adminList.dataset.hasResults = '1';
       renderAdminList(docs);
       renderDailySummary(docs);
@@ -1082,9 +1089,22 @@
 
   async function loadLog(animateFirst){
     const container = document.getElementById('logContainer');
+    if(!appState.user){ renderLog([], animateFirst); return; }
     try{
-      const snap = await db.collection('checkins').orderBy('timeISO','desc').limit(15).get();
-      const docs = snap.docs.map(doc=>({ id: doc.id, data: doc.data() }));
+      const snap = await db.collection('checkins')
+        .where('email', '==', appState.user.email)
+        .orderBy('timeISO', 'desc')
+        .limit(30)
+        .get();
+      const now = new Date();
+      const todayKey = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
+      const docs = snap.docs
+        .map(doc=>({ id: doc.id, data: doc.data() }))
+        .filter(d=>{
+          const t = new Date(d.data.timeISO);
+          const key = t.getFullYear()+'-'+pad(t.getMonth()+1)+'-'+pad(t.getDate());
+          return key === todayKey;
+        });
       renderLog(docs, animateFirst);
     }catch(e){
       container.innerHTML = '<div class="empty-log">ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการตั้งค่า Firebase</div>';
