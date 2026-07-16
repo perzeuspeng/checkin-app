@@ -836,13 +836,35 @@
   }
 
   async function startCamera(facing){
-    if(state.stream){ state.stream.getTracks().forEach(t=>t.stop()); }
+    if(state.stream){
+      state.stream.getTracks().forEach(t=>t.stop());
+      state.stream = null;
+      camVideo.srcObject = null;
+      await new Promise(res=>setTimeout(res, 250));
+    }
     camStatusLine.classList.remove('live');
     camStatusText.textContent = 'กำลังเชื่อมต่อกล้อง...';
     try{
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video:{ facingMode: facing, width:{ideal:640}, height:{ideal:480} }, audio:false
-      });
+      let stream;
+      try{
+        stream = await navigator.mediaDevices.getUserMedia({
+          video:{ facingMode:{ ideal: facing }, width:{ideal:640}, height:{ideal:480} }, audio:false
+        });
+      }catch(innerErr){
+        // Fallback: some devices fail to switch camera with facingMode constraint;
+        // try picking a matching camera by device label instead.
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(d=>d.kind==='videoinput');
+        const wantBack = facing === 'environment';
+        const match = videoInputs.find(d=> wantBack ? /back|rear|environment/i.test(d.label) : /front|user|face/i.test(d.label));
+        if(match){
+          stream = await navigator.mediaDevices.getUserMedia({
+            video:{ deviceId:{ exact: match.deviceId }, width:{ideal:640}, height:{ideal:480} }, audio:false
+          });
+        }else{
+          throw innerErr;
+        }
+      }
       state.stream = stream;
       camVideo.srcObject = stream;
       camVideo.style.display = 'block';
@@ -852,7 +874,7 @@
       showMsg(camMsg, '', '');
     }catch(err){
       camStatusText.textContent = 'ไม่สามารถเข้าถึงกล้องได้';
-      showMsg(camMsg, 'กรุณาอนุญาตการใช้งานกล้องในเบราว์เซอร์', 'err');
+      showMsg(camMsg, 'ไม่สามารถสลับกล้องนี้ได้ กรุณาลองใหม่ หรือรีเฟรชหน้าเว็บ', 'err');
     }
   }
   startCamera(state.facing);
